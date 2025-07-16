@@ -7,6 +7,8 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from django.conf import settings
+from django.conf.urls.static import static
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -22,9 +24,8 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-
     path('admin/', admin.site.urls),
-    
+
     # Autenticação JWT
     path('api/v1/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/v1/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
@@ -35,3 +36,6 @@ urlpatterns = [
     # Swagger UI
     path('api/v1/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 ]
+
+# 🔁 Adiciona suporte a arquivos de mídia (como imagens de bolos)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -124,12 +124,14 @@ class ImageType(models.TextChoices):
     DETALHE = 'detalhe', 'Detalhe'
 
 class CakeImage(models.Model):
-    cake = models.ForeignKey(Cake, on_delete=models.CASCADE, related_name='images')
-    url = models.URLField("URL da imagem")
+    cake = models.ForeignKey("Cake", on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField("Imagem", upload_to="cakes/", null=True, blank=True)
     image_type = models.CharField("Tipo", max_length=20, choices=ImageType.choices)
+    is_cover = models.BooleanField("Imagem de capa", default=False)
 
     def __str__(self):
-        return f"{self.get_image_type_display()} - {self.cake.name}"
+        tipo = self.get_image_type_display()
+        return f"{tipo} - {self.cake.name}" + (" [CAPA]" if self.is_cover else "")
 
 # -------------------------
 # Informações nutricionais

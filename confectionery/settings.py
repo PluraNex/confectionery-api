@@ -203,3 +203,7 @@ JAZZMIN_SETTINGS = {
     "show_sidebar": True,
     "show_ui_builder": False,
 }
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
