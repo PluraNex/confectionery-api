@@ -1,0 +1,64 @@
+<div class="col-md-6 mb-4">
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white border-bottom-0 d-flex align-items-center">
+      <i class="fas fa-chart-pie me-2 text-info"></i>
+      <h5 class="mb-0">{{ title }}</h5>
+    </div>
+    <div class="card-body">
+      <canvas id="{{ chart_id }}" height="160"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ctx_{{ chart_id }} = document.getElementById('{{ chart_id }}');
+  if (ctx_{{ chart_id }}) {
+    new Chart(ctx_{{ chart_id }}, {
+      type: 'doughnut',
+      data: {
+        labels: {{ labels|default_if_none:"[]"|safe }},
+        datasets: [{
+          data: {{ data|default_if_none:"[]"|safe }},
+          backgroundColor: {{ colors|default:"['#A5C8F6', '#FFD494', '#F6A5A5', '#155724', '#D2C1F8', '#F9E79F']"|safe }},
+          borderColor: '#ffffff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 14,
+              padding: 16,
+              color: '#555',
+              font: {
+                size: 13,
+                weight: '500'
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: '#f8f9fa',
+            titleColor: '#333',
+            bodyColor: '#333',
+            borderColor: '#dee2e6',
+            borderWidth: 1,
+            callbacks: {
+              label: function (context) {
+                let label = context.label || '';
+                let value = context.raw || 0;
+                let total = context.chart._metasets[0].total;
+                let percent = ((value / total) * 100).toFixed(1);
+                return `${label}: ${value} (${percent}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+</script>

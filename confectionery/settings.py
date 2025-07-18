@@ -42,6 +42,7 @@ INSTALLED_APPS = [
 
     # Apps da aplicação
     'cakes',
+    'supplies',
 ]
 
 MIDDLEWARE = [
@@ -59,7 +60,11 @@ ROOT_URLCONF = 'confectionery.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'core', 'templates'),
+            os.path.join(BASE_DIR, 'supplies', 'dashboards', 'templates'),  # ← adicionar isso
+        ],
+
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -125,7 +130,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  
 
 # Default primary key field type
@@ -178,10 +183,28 @@ JAZZMIN_SETTINGS = {
     "navigation_expanded": True,
     
     # Menu lateral organizado
-    "order_with_respect_to": ["cakes"],
+    "order_with_respect_to": [
+        "cakes",
+        "supplies",
+        "auth" 
+    ],
 
     # Ícones personalizados por app/modelo (pega ícones do FontAwesome)
     "icons": {
+        # ... anteriores
+
+        # 🔐 Autenticação e autorização
+        "auth.User": "fas fa-user",           # Usuários
+        "auth.Group": "fas fa-users-cog",     # Grupos
+
+        # 🧁 Suprimentos
+        "supplies.SupplyItem": "fas fa-boxes",
+        "supplies.SupplyBatch": "fas fa-barcode",
+
+        # ⚖️ Unidade de medida compartilhada
+        "commons.UnitOfMeasure": "fas fa-balance-scale",
+
+        # 🎂 Bolos
         "cakes.Cake": "fas fa-birthday-cake",
         "cakes.CakeSize": "fas fa-ruler-horizontal",
         "cakes.CakeImage": "fas fa-image",
@@ -190,13 +213,23 @@ JAZZMIN_SETTINGS = {
     },
 
     # Agrupamento de apps (opcional)
-    "custom_links": {
-        "cakes": [{
-            "name": "Ver site",
-            "url": "https://confectionery.com.br",
-            "icon": "fas fa-external-link-alt",
-            "permissions": ["cakes.view_cake"],
-        }]
+   "custom_links": {
+        "supplies": [
+            {
+                "name": "Dashboard",
+                "url": "/admin/supplies/supplyitem/dashboard/",
+                "icon": "fas fa-chart-pie",
+                "permissions": ["supplies.view_supplyitem"],
+            },
+        ],
+        "cakes": [
+            {
+                "name": "Ver site",
+                "url": "https://confectionery.com.br",
+                "icon": "fas fa-external-link-alt",
+                "permissions": ["cakes.view_cake"],
+            }
+        ]
     },
 
     # Remove links para docs/admin/logout (opcional)
@@ -207,3 +240,5 @@ JAZZMIN_SETTINGS = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+TIME_ZONE = 'America/Sao_Paulo'
+USE_TZ = True

@@ -1,0 +1,50 @@
+<div class="col-md-3 mb-3">
+  <div class="card text-white shadow-sm p-3"
+       style="background-color: {{ bg_color|default:'#007bff' }}; border-radius: 0.75rem; min-height: 120px;">
+
+    <!-- Título e valor -->
+    <div class="d-flex justify-content-between align-items-start mb-2">
+      <div>
+        <div class="small fw-semibold text-uppercase text-white"
+             style="letter-spacing: 0.5px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
+          {{ title|default:"Título" }}
+        </div>
+        <div class="h3 fw-bold text-white"
+             style="text-shadow: 1px 1px 2px rgba(0,0,0,0.6);">
+          {{ value|default:"0" }}
+        </div>
+      </div>
+      {% if icon %}
+        <div class="d-flex align-items-center justify-content-center"
+             style="width: 52px; height: 52px;">
+          <i class="{{ icon }} fa-2x text-white-50"></i>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Rodapé -->
+    <div class="d-flex justify-content-between align-items-center">
+      {% if variation_text %}
+        <div class="fw-bold text-white"
+             style="font-size: 1rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.6); letter-spacing: 0.2px;">
+          {{ variation_text }}
+        </div>
+      {% else %}
+        <div class="small text-white-50">
+          {{ subtitle|default:"" }}
+        </div>
+      {% endif %}
+
+      <!-- Curva decorativa -->
+      <div class="small">
+        <svg height="24" width="60">
+          <path d="M0 20 Q15 5 30 15 Q45 25 60 10"
+                fill="none"
+                stroke="rgba(255,255,255,0.4)"
+                stroke-width="2"/>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+</div>

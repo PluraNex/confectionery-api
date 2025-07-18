@@ -1,0 +1,69 @@
+<div class="col-md-6 mb-4">
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white border-bottom-0 d-flex align-items-center">
+      <i class="fas fa-chart-bar me-2 text-info"></i>  <!-- Ícone suave -->
+      <h5 class="mb-0">{{ title }}</h5>
+    </div>
+    <div class="card-body">
+      <canvas id="{{ chart_id }}" height="160"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ctx_{{ chart_id }} = document.getElementById('{{ chart_id }}');
+  if (ctx_{{ chart_id }}) {
+    new Chart(ctx_{{ chart_id }}, {
+      type: 'bar',
+      data: {
+        labels: {{ labels|default:"[]"|safe }},
+        datasets: [{
+          label: '{{ dataset_label|default:"Quantidade" }}',
+          data: {{ data|default:"[]"|safe }},
+          backgroundColor: {{ bar_colors|default:"['#a5c8f6', '#ffe29a', '#a3d9a5', '#f6a5a5', '#d2c1f8']"|safe }},
+          borderRadius: 6,
+          barThickness: 30
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              color: "#666"
+            },
+            grid: {
+              color: "#f0f0f0"
+            }
+          },
+          x: {
+            ticks: {
+              color: "#666"
+            },
+            grid: {
+              display: false
+            }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#f8f9fa',
+            titleColor: '#333',
+            bodyColor: '#333',
+            borderColor: '#dee2e6',
+            borderWidth: 1,
+            callbacks: {
+              label: function (context) {
+                return `${context.dataset.label}: ${context.raw}`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+</script>

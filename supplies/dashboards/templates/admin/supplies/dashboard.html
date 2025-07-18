@@ -1,0 +1,30 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+  <h1 class="mb-4"><i class="fas fa-boxes"></i> Dashboard de Suprimentos</h1>
+
+  <!-- MÉTRICAS EM CARDS -->
+  <div class="row">
+    {% include "components/card_metric.html" with title="Total de Itens" value=total_items bg_color="#007bff" icon="fas fa-boxes" variation_text=total_items_variation_text variation_positive=total_items_variation_positive %}
+    {% include "components/card_metric.html" with title="Ativos" value=total_active bg_color="#28a745" icon="fas fa-check-circle" variation_text=total_active_variation_text variation_positive=total_active_variation_positive %}
+    {% include "components/card_metric.html" with title="Vencidos" value=total_expired bg_color="#dc3545" icon="fas fa-times-circle" variation_text=total_expired_variation_text variation_positive=total_expired_variation_positive %}
+    {% include "components/card_metric.html" with title="Vencendo em 7 dias" value=expiring_soon bg_color="#e0a800" icon="fas fa-exclamation-triangle" variation_text=expiring_soon_variation_text variation_positive=expiring_soon_variation_positive %}
+  </div>
+
+  <!-- GRÁFICOS -->
+  <div class="row">
+    {% include "components/chart_bar.html" with title="Distribuição por Categoria" chart_id="categoryChart" labels=category_labels data=category_counts %}
+    {% include "components/chart_doughnut.html" with title="Status de Validade" chart_id="validityChart" data=doughnut_data labels=doughnut_labels colors=doughnut_colors %}
+    {% include "components/chart_timeline.html" with title="Linha do Tempo de Validade" chart_id="timelineChart" labels=timeline_labels data=timeline_data colors=timeline_colors %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+{% endblock %}

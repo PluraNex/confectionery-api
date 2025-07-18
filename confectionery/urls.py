@@ -32,10 +32,17 @@ urlpatterns = [
 
     # App cakes
     path('api/v1/cakes/', include('cakes.urls')),
+    path('api/v1/supplies/', include('supplies.urls')),
 
     # Swagger UI
     path('api/v1/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+
+    # Dashboards internos (admin customizado)
+    path("admin/supplies/", include("supplies.dashboards.urls")),
+
 ]
 
 # 🔁 Adiciona suporte a arquivos de mídia (como imagens de bolos)
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

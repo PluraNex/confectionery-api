@@ -1,0 +1,206 @@
+<div class="col-md-12 mb-4">
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white border-bottom-0 d-flex align-items-center">
+      <i class="fas fa-clock me-2 text-secondary"></i>
+      <h5 class="mb-0">{{ title|default:"Linha do Tempo de Validade" }}</h5>
+    </div>
+    <div class="card-body">
+      <canvas id="{{ chart_id|default:'timelineChart' }}" height="260"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  const chartId = '{{ chart_id|default:"timelineChart" }}';
+  const ctx = document.getElementById(chartId);
+
+  const rawLabels = {{ labels|default:"[]"|safe }};
+
+  // Função para normalizar para 'yyyy-mm-dd'
+  const toISODate = (date) => date.toISOString().split('T')[0];
+
+  // Datas base
+  const today = new Date();
+  const todayISO = toISODate(today);
+
+  const minus7 = new Date(today);
+  minus7.setDate(today.getDate() - 7);
+  const minus7ISO = toISODate(minus7);
+
+  const minus15 = new Date(today);
+  minus15.setDate(today.getDate() - 15);
+  const minus15ISO = toISODate(minus15);
+
+  // Função para converter 'dd MMM yyyy' para 'yyyy-mm-dd'
+  const parseLabelToISO = (label) => {
+    const months = {
+      jan: '01', fev: '02', mar: '03', abr: '04',
+      mai: '05', jun: '06', jul: '07', ago: '08',
+      set: '09', out: '10', nov: '11', dez: '12'
+    };
+    const [day, mon, year] = label.toLowerCase().replace('.', '').split(' ');
+    const mm = months[mon] || '01';
+    return `${year}-${mm}-${day.padStart(2, '0')}`;
+  };
+
+  // Função para encontrar no array de labels o que bate com a data ISO
+  const findMatchingLabel = (isoDate) => {
+    return rawLabels.find(label => parseLabelToISO(label) === isoDate);
+  };
+
+  const todayLabel = '{{ today_label|default:"" }}';
+  const minus7Label = '{{ minus7_label|default:"" }}';
+  const minus15Label = '{{ minus15_label|default:"" }}';
+
+  if (ctx) {
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: rawLabels,
+        datasets: [{
+          label: 'Validade dos Itens',
+          data: {{ data|default:"[]"|safe }},
+          showLine: true,
+          tension: 0.4,
+          borderWidth: 2,
+          borderColor: function(ctx) {
+            const chart = ctx.chart;
+            const {ctx: canvasCtx, chartArea} = chart;
+            if (!chartArea) return 'rgba(128,128,128,0.3)';
+            const gradient = canvasCtx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+            const colors = {{ colors|default:"[]"|safe }};
+            const step = 1 / (colors.length - 1);
+            colors.forEach((color, index) => {
+              gradient.addColorStop(step * index, color);
+            });
+            return gradient;
+          },
+          pointRadius: function(context) {
+            const index = context.dataIndex;
+            const sizes = {{ timeline_sizes|default:"[]"|safe }};
+            const value = sizes[index] || 1;
+            const minSize = 4;
+            const maxSize = 20;
+            const scaled = Math.log10(value + 1) * 4;
+            return Math.min(Math.max(scaled, minSize), maxSize);
+          },
+          pointHoverRadius: 12,
+          pointBackgroundColor: {{ colors|default:"[]"|safe }},
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#333',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            padding: 12,
+            cornerRadius: 6,
+            callbacks: {
+              label: function (context) {
+                const label = context.chart.data.labels[context.dataIndex] || '';
+                const value = context.raw || '';
+                const sizes = {{ timeline_sizes|default:"[]"|safe }};
+                const units = sizes[context.dataIndex] || 0;
+                return `📦 ${label}: ${value} lote(s), ${units} unid`;
+              }
+            }
+          },
+          annotation: {
+            annotations: {
+              ...(todayLabel && {
+                todayLine: {
+                  type: 'line',
+                  scaleID: 'x',
+                  value: todayLabel,
+                  borderColor: '#6f42c1',
+                  borderWidth: 2,
+                  borderDash: [6, 6],
+                  label: {
+                    content: 'Hoje',
+                    enabled: true,
+                    position: 'end',
+                    backgroundColor: '#6f42c1',
+                    color: '#fff',
+                    font: { weight: 'bold' }
+                  }
+                }
+              }),
+              ...(minus7Label && {
+                sevenDaysAgoLine: {
+                  type: 'line',
+                  scaleID: 'x',
+                  value: minus7Label,
+                  borderColor: '#0dcaf0',
+                  borderWidth: 1.5,
+                  borderDash: [4, 4],
+                  label: {
+                    content: '-7 dias',
+                    enabled: true,
+                    position: 'end',
+                    backgroundColor: '#0dcaf0',
+                    color: '#000',
+                    font: { weight: 'bold', size: 10 }
+                  }
+                }
+              }),
+              ...(minus15Label && {
+                fifteenDaysAgoLine: {
+                  type: 'line',
+                  scaleID: 'x',
+                  value: minus15Label,
+                  borderColor: '#6c757d',
+                  borderWidth: 1.5,
+                  borderDash: [4, 4],
+                  label: {
+                    content: '-15 dias',
+                    enabled: true,
+                    position: 'end',
+                    backgroundColor: '#6c757d',
+                    color: '#fff',
+                    font: { weight: 'bold', size: 10 }
+                  }
+                }
+              })
+            }
+          }
+        },
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Data de Expiração',
+              color: '#6c757d',
+              font: { size: 14, weight: 'bold' }
+            },
+            ticks: {
+              autoSkip: true,
+              maxRotation: 45,
+              minRotation: 0
+            }
+          },
+          y: {
+            beginAtZero: true,
+            grace: '10%',
+            ticks: {
+              precision: 0,
+              stepSize: 1
+            },
+            title: {
+              display: true,
+              text: 'Qtd de Lotes',
+              color: '#6c757d',
+              font: { size: 14, weight: 'bold' }
+            }
+          }
+        }
+      }
+    });
+  }
+</script>

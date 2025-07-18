@@ -158,3 +158,5 @@ class NutritionalInfo(models.Model):
 
     def __str__(self):
         return f"Info Nutricional de {self.cake.name}"
+
+    

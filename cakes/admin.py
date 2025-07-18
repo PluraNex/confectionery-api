@@ -297,13 +297,13 @@ class CakeCompositionAdmin(admin.ModelAdmin):
 
 # ---------- Admins auxiliares ---------- #
 
-@admin.register(CakeSize)
+#@admin.register(CakeSize)
 class CakeSizeAdmin(admin.ModelAdmin):
     list_display = ("description", "serves", "cake")
     list_filter = ("cake",)
     search_fields = ("cake__name", "description")
 
-@admin.register(CakeImage)
+#@admin.register(CakeImage)
 class CakeImageAdmin(admin.ModelAdmin):
     list_display = ("cake", "image_type", "preview_image", "is_cover")  # substitui 'url' por preview e is_cover
     list_filter = ("image_type", "cake")

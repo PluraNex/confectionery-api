@@ -1,0 +1,13 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools %}
+  {{ block.super }}
+
+  <li style="list-style-type: none; margin-left: 10px;">
+    <a href="{% url 'admin:supplies-dashboard' %}"
+       class="btn btn-primary"
+       style="font-weight: 500;">
+      <i class="fas fa-chart-bar"></i> Ver Dashboard
+    </a>
+  </li>
+{% endblock %}
