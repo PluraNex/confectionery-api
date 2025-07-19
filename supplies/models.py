@@ -197,8 +197,27 @@ class SupplyItem(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        status = "Inativo" if not self.is_active else ""
-        return f"{self.name} ({self.sku}) {'[Inativo]' if not self.is_active else ''}".strip()
+        return f"{self.name} ({self.unit_of_measure}, {self.get_category_display()})"
+
+    @property
+    def has_image(self) -> bool:
+        cover = self.images.filter(is_cover=True).first()
+        if not cover:
+            cover = self.images.first()
+        return bool(cover and cover.image and hasattr(cover.image, "url"))
+
+
+    def render_image_thumb(self):
+        cover = self.images.filter(is_cover=True).first()
+        if not cover:
+            cover = self.images.first()
+        if cover and cover.image:
+            return format_html(
+                '<img src="{}" style="height:40px;border-radius:6px;">',
+                cover.image.url
+            )
+        return format_html('<span style="opacity: 0.6;">Sem imagem</span>')
+
 
 
     class Meta:
@@ -221,6 +240,19 @@ class SupplyBatch(models.Model):
     expiration_date = models.DateField("Data de validade")
     quantity = models.DecimalField("Quantidade", max_digits=10, decimal_places=2)
     created_at = models.DateTimeField("Criado em", auto_now_add=True)
+
+    # ✅ Campo que indica se já foi lançado no estoque
+    stock_entry_created = models.BooleanField(
+        "Entrada de estoque criada",
+        default=False,
+        help_text="Indica se esse lote já foi lançado no estoque."
+    )
+
+    is_active = models.BooleanField(
+        "Ativo",
+        default=True,
+        help_text="Marque como inativo para impedir movimentações e entradas no estoque."
+    )
 
     def __str__(self):
         return f"Lote {self.batch_code} - {self.supply_item.name}"

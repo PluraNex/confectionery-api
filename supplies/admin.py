@@ -8,7 +8,8 @@ from django.db.models import Min
 from django.utils import timezone
 from django.urls import path
 from supplies.dashboards.views import supplies_dashboard
-
+from stock.services.orchestrator import StockOrchestrator
+from django.db.models import Sum
 
 
 # ----------------------
@@ -31,41 +32,76 @@ class ExpirationStatusFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         today = timezone.now().date()
-        annotated_qs = queryset.annotate(next_exp=Min("batches__expiration_date"))
-
         value = self.value()
-        if value == "expired":
-            return annotated_qs.filter(next_exp__lt=today)
-        elif value == "expiring_today":
-            return annotated_qs.filter(next_exp=today)
-        elif value == "expiring_7":
-            return annotated_qs.filter(
-                next_exp__gt=today,
-                next_exp__lte=today + datetime.timedelta(days=7)
-            )
-        elif value == "expiring_30":
-            return annotated_qs.filter(
-                next_exp__gt=today + datetime.timedelta(days=7),
-                next_exp__lte=today + datetime.timedelta(days=30)
-            )
-        elif value == "valid_long":
-            return annotated_qs.filter(next_exp__gt=today + datetime.timedelta(days=30))
-        elif value == "no_date":
-            return annotated_qs.filter(next_exp__isnull=True)
 
-        return annotated_qs
+        if value == "expired":
+            return queryset.filter(expiration_date__lt=today)
+        elif value == "expiring_today":
+            return queryset.filter(expiration_date=today)
+        elif value == "expiring_7":
+            return queryset.filter(expiration_date__gt=today, expiration_date__lte=today + datetime.timedelta(days=7))
+        elif value == "expiring_30":
+            return queryset.filter(expiration_date__gt=today + datetime.timedelta(days=7), expiration_date__lte=today + datetime.timedelta(days=30))
+        elif value == "valid_long":
+            return queryset.filter(expiration_date__gt=today + datetime.timedelta(days=30))
+        elif value == "no_date":
+            return queryset.filter(expiration_date__isnull=True)
+
+        return queryset
+
 # ----------------------
 # Inline de lotes
 # ----------------------
 
-class SupplyBatchInline(admin.TabularInline):
+class ReadOnlyBatchInline(admin.TabularInline):
     model = SupplyBatch
     extra = 0
-    fields = ("batch_code", "expiration_date", "quantity", "created_at")
-    readonly_fields = ("created_at",)
-    ordering = ("-expiration_date",)
-    verbose_name = "Lote"
-    verbose_name_plural = "📦 Lotes do Item"
+    can_delete = False
+    show_change_link = True
+    verbose_name_plural = "📦 Lotes do Item (visualização somente)"
+    readonly_fields = ("batch_code", "expiration_badge", "quantity_badge", "created_at")
+    fields = ("batch_code", "expiration_badge", "quantity_badge", "created_at")
+
+    def has_add_permission(self, request, obj):
+        return False
+
+    def expiration_badge(self, obj):
+        if not obj.expiration_date:
+            return format_html('<span style="opacity: 0.5;">–</span>')
+
+        today = timezone.now().date()
+        delta = (obj.expiration_date - today).days
+        exp_str = obj.expiration_date.strftime("%d/%m/%Y")
+
+        if delta < 0:
+            return format_html(
+                '<span title="Vencido em {} ({} dias atrás)" style="background:#f8d7da; color:#721c24; padding:2px 8px; border-radius:4px;">❌ Vencido</span>',
+                exp_str, abs(delta)
+            )
+        elif delta <= 7:
+            return format_html(
+                '<span title="Vence em {} ({} dias)" style="background:#fff3cd; color:#856404; padding:2px 8px; border-radius:4px;">⚠️ {} dias</span>',
+                exp_str, delta, delta
+            )
+        elif delta <= 30:
+            return format_html(
+                '<span title="Vence em {} ({} dias)" style="background:#d1ecf1; color:#0c5460; padding:2px 8px; border-radius:4px;">📅 {} dias</span>',
+                exp_str, delta, delta
+            )
+        else:
+            return format_html(
+                '<span title="Vence em {} ({} dias)" style="background:#e2f0d9; color:#155724; padding:2px 8px; border-radius:4px;">✅ {} dias</span>',
+                exp_str, delta, delta
+            )
+    expiration_badge.short_description = "Validade"
+
+    def quantity_badge(self, obj):
+        return format_html(
+            '<span style="background:#eef; padding:2px 6px; border-radius:4px;">{}</span>',
+            obj.quantity
+        )
+    quantity_badge.short_description = "Qtd"
+
 
 # ----------------------
 # Inline de imagens
@@ -166,7 +202,7 @@ class SupplyItemAdmin(admin.ModelAdmin):
     search_fields = ["name", "sku", "barcode"]
     readonly_fields = ["created_at", "updated_at", "preview_image", "preview_grid"]
     ordering = ["name"]
-    inlines = [SupplyBatchInline, SupplyImageInline, SupplyNutritionInline, SupplyIngredientDetailInline  ]
+    inlines = [ReadOnlyBatchInline, SupplyImageInline, SupplyNutritionInline, SupplyIngredientDetailInline  ]
     actions = ["desativar_itens"]
 
     fieldsets = (
@@ -366,9 +402,87 @@ class SupplyItemAdmin(admin.ModelAdmin):
 # Admin de SupplyBatch
 # ----------------------
 
-#@admin.register(SupplyBatch)
+from django.utils.html import format_html
+from django.utils.timezone import now
+from stock.services.orchestrator import StockOrchestrator
+
+
+@admin.register(SupplyBatch)
 class SupplyBatchAdmin(admin.ModelAdmin):
-    list_display = ["supply_item", "batch_code", "expiration_date", "quantity"]
+    list_display = [
+        "supply_item_link",
+        "batch_code",
+        "expiration_badge",
+        "quantity",
+        "stock_status_badge",
+        "created_at",
+        "ativo_badge"
+
+    ]
     list_filter = [ExpirationStatusFilter]
     search_fields = ["batch_code", "supply_item__name"]
     autocomplete_fields = ["supply_item"]
+    readonly_fields = ["created_at"]
+    date_hierarchy = "expiration_date"
+    actions = ["force_stock_entry"]
+
+    def ativo_badge(self, obj):
+        return "✅" if obj.is_active else "❌"
+    ativo_badge.short_description = "Ativo?"
+
+    @admin.display(description="Item de Suprimento")
+    def supply_item_link(self, obj):
+        return format_html(
+            '<a href="/admin/supplies/supplyitem/{}/change/">{}</a>',
+            obj.supply_item.id,
+            obj.supply_item.name
+        )
+
+    @admin.display(description="Validade")
+    def expiration_badge(self, obj):
+        if not obj.expiration_date:
+            return format_html('<span style="opacity: 0.6;">–</span>')
+
+        delta = (obj.expiration_date - now().date()).days
+        color, label = "#d4edda", f"✅ {delta} dias"
+
+        if delta < 0:
+            color, label = "#f8d7da", f"❌ Vencido"
+        elif delta <= 7:
+            color, label = "#fff3cd", f"⚠️ {delta} dias"
+        elif delta <= 30:
+            color, label = "#d1ecf1", f"📅 {delta} dias"
+
+        return format_html(
+            '<span style="padding:2px 6px; border-radius:4px; background:{};">{}</span>',
+            color, label
+        )
+
+    @admin.display(description="Estoque")
+    def stock_status_badge(self, obj):
+        total_in_stock = obj.stock_items.aggregate(total=Sum("quantity"))["total"] or 0
+
+        if total_in_stock == 0:
+            return format_html('<span style="color:#721c24;">🚫 Sem estoque</span>')
+        elif total_in_stock < obj.quantity:
+            return format_html('<span style="color:#856404;">🔄 Parcial: {}</span>', total_in_stock)
+        else:
+            return format_html('<span style="color:#155724;">✅ Completo: {}</span>', total_in_stock)
+
+    @admin.action(description="📦 Forçar entrada no estoque")
+    def force_stock_entry(self, request, queryset):
+        count = 0
+        for batch in queryset:
+            if StockOrchestrator.force_entry(batch):
+                count += 1
+        self.message_user(
+            request,
+            f"✅ {count} lote(s) inserido(s) manualmente no estoque com sucesso."
+        )
+    
+    @admin.action(description="❌ Desativar lote(s)")
+    def desativar_lotes(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"{updated} lote(s) desativado(s).")
+
+    actions = ["force_stock_entry", "desativar_lotes"]

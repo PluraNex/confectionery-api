@@ -39,10 +39,14 @@ INSTALLED_APPS = [
     # Terceiros
     'rest_framework',
     'drf_yasg',
+    'simple_history',
+    'import_export',
 
     # Apps da aplicação
     'cakes',
     'supplies',
+    'stock',
+    'production'
 ]
 
 MIDDLEWARE = [
@@ -53,6 +57,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'simple_history.middleware.HistoryRequestMiddleware',
 ]
 
 ROOT_URLCONF = 'confectionery.urls'
